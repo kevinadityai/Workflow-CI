@@ -1,0 +1,15 @@
+artifact_uri: file:///home/runner/work/Workflow-CI/Workflow-CI/MLProject/mlruns/0/3efa73ca52664efda5af9710b8bc75f7/artifacts
+end_time: 1791124550258
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 3efa73ca52664efda5af9710b8bc75f7
+run_name: bedecked-stoat-262
+run_uuid: 3efa73ca52664efda5af9710b8bc75f7
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1791124541079
+status: 3
+tags: []
+user_id: runner
