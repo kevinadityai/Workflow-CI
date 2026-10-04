@@ -1,0 +1,78 @@
+name: CI - Train & Build Model
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "MLProject/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: MLProject
+    steps:
+      - name: Run actions/checkout@v4
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12.7
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.7"
+
+      - name: Check Env
+        run: |
+          python --version
+          pip --version
+          ls -la
+
+      - name: Install dependencies
+        run: pip install mlflow==2.19.0 scikit-learn==1.5.2 pandas==2.2.3 numpy==1.26.4
+
+      - name: Run mlflow project
+        run: mlflow run . --env-manager=local
+
+      - name: Get latest MLflow run_id
+        run: |
+          RUN_ID=$(python -c "import mlflow; print(mlflow.search_runs(search_all_experiments=True, order_by=['start_time DESC']).iloc[0]['run_id'])")
+          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+          echo "Latest run_id: $RUN_ID"
+
+      - name: Verify run status
+        run: |
+          python -c "import mlflow, os, sys; s = mlflow.get_run(os.environ['RUN_ID']).info.status; print('Run status:', s); sys.exit(s != 'FINISHED')"
+
+      - name: Upload to GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mlruns
+          git commit -m "ci: add mlflow artifacts for run ${{ env.RUN_ID }} [skip ci]"
+          git push
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-model-${{ env.RUN_ID }}
+          path: MLProject/mlruns/
+
+      - name: Build Docker Model
+        run: mlflow models build-docker --model-uri "runs:/${{ env.RUN_ID }}/model" --name "bank-marketing-model"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Tag Docker Image
+        run: docker tag bank-marketing-model ${{ secrets.DOCKER_HUB_USERNAME }}/bank-marketing-model:latest
+
+      - name: Push Docker Image
+        run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/bank-marketing-model:latest

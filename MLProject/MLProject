@@ -1,0 +1,13 @@
+name: bank-marketing-ci
+
+conda_env: conda.yaml
+
+entry_points:
+  main:
+    parameters:
+      data_dir: {type: str, default: "bankmarketing_preprocessing"}
+      C: {type: float, default: 0.001}
+      penalty: {type: str, default: "l1"}
+      solver: {type: str, default: "liblinear"}
+      max_iter: {type: int, default: 1000}
+    command: "python modelling.py --data_dir {data_dir} --C {C} --penalty {penalty} --solver {solver} --max_iter {max_iter}"
